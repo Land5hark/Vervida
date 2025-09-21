@@ -246,3 +246,4 @@ create policy "Users can update own tasks"
 create policy "Users can delete own tasks"
   on tasks for delete
   using (auth.uid() = user_id);
+```
