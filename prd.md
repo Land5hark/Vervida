@@ -233,7 +233,15 @@ alter table tasks enable row level security;
 
 create policy "Users can view own tasks"
   on tasks for select
-  using (auth.uid() = user_id);
+  using (
+    auth.uid() = user_id
+    or exists (
+      select 1
+      from project_members pm
+      where pm.project_id = project_id
+        and pm.user_id = auth.uid()
+    )
+  );
 
 create policy "Users can insert own tasks"
   on tasks for insert
@@ -241,8 +249,32 @@ create policy "Users can insert own tasks"
 
 create policy "Users can update own tasks"
   on tasks for update
-  using (auth.uid() = user_id);
+  using (
+    auth.uid() = user_id
+    or exists (
+      select 1
+      from project_members pm
+      where pm.project_id = project_id
+        and pm.user_id = auth.uid()
+        and pm.role in ('owner','editor')
+    )
+  );
 
 create policy "Users can delete own tasks"
   on tasks for delete
-  using (auth.uid() = user_id);
+  using (
+    auth.uid() = user_id
+    or exists (
+      select 1
+      from project_members pm
+      where pm.project_id = project_id
+        and pm.user_id = auth.uid()
+        and pm.role = 'owner'
+    )
+  );
+
+-- Shared access is audited through project_members role assignments, ensuring membership-level permissions are traceable.
+```
+
+Shared access events should be reviewed against `project_members.role` history.
+This ensures project-level membership changes audit collaborative task permissions.
